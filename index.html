@@ -76,16 +76,47 @@
     color: white;
     border-radius: 5px;
   }
+
+  /* 新增手機控制器樣式 */
+  #mobileControls {
+    width: 400px;
+    margin: 10px auto;
+    display: flex;
+    justify-content: space-between;
+    user-select: none;
+  }
+  #mobileControls button {
+    width: 48%;
+    padding: 15px 0;
+    font-size: 24px;
+    background: rgba(255, 255, 255, 0.15);
+    border: 2px solid white;
+    border-radius: 12px;
+    color: white;
+    outline: none;
+    touch-action: manipulation;
+    transition: background 0.3s ease;
+  }
+  #mobileControls button:active {
+    background: rgba(255, 255, 255, 0.4);
+  }
 </style>
 </head>
 <body>
 <div id="gameArea">
-<div id="car"></div>
-<div id="gameOverScreen">
-<div>遊戲結束！</div>
-<button id="restartBtn">重新開始</button>
+  <div id="car"></div>
+  <div id="gameOverScreen">
+    <div>遊戲結束！</div>
+    <button id="restartBtn">重新開始</button>
+  </div>
 </div>
+
+<!-- 新增手機虛擬按鈕 -->
+<div id="mobileControls">
+  <button id="btnLeft">⬅ 左</button>
+  <button id="btnRight">右 ➡</button>
 </div>
+
 <div id="score">分數: 0</div>
  
 <script>
@@ -94,12 +125,14 @@
   const scoreDisplay = document.getElementById('score');
   const gameOverScreen = document.getElementById('gameOverScreen');
   const restartBtn = document.getElementById('restartBtn');
- 
+  const btnLeft = document.getElementById('btnLeft');
+  const btnRight = document.getElementById('btnRight');
+
   const gameWidth = 400;
   const gameHeight = 600;
   const carWidth = 50;
   const carHeight = 100;
- 
+
   let carLeft = 175;
   let obstacles = [];
   let obstacleSpeed = 3;
@@ -109,7 +142,7 @@
   let lastObstacleTime = 0;
   let lastFrameTime = 0;
   let animationFrameId;
- 
+
   function createObstacle() {
     const obs = document.createElement('div');
     obs.classList.add('obstacle');
@@ -120,15 +153,14 @@
     gameArea.appendChild(obs);
     obstacles.push(obs);
   }
- 
+
   function updateObstacles(deltaTime) {
     for (let i = obstacles.length - 1; i >= 0; i--) {
       const obs = obstacles[i];
       let top = parseFloat(obs.style.top);
       top += obstacleSpeed;
       obs.style.top = top + 'px';
- 
-      // 移除超出畫面障礙物
+
       if (top > gameHeight) {
         gameArea.removeChild(obs);
         obstacles.splice(i, 1);
@@ -139,12 +171,11 @@
       }
     }
   }
- 
-  // 使用 getBoundingClientRect 進行精確碰撞檢測
+
   function checkCollision(rect1, rect2) {
     const r1 = rect1.getBoundingClientRect();
     const r2 = rect2.getBoundingClientRect();
- 
+
     return !(
       r1.top > r2.bottom ||
       r1.bottom < r2.top ||
@@ -152,29 +183,27 @@
       r1.right < r2.left
     );
   }
- 
+
   function gameLoop(timestamp) {
     if (!lastFrameTime) lastFrameTime = timestamp;
     const deltaTime = timestamp - lastFrameTime;
     lastFrameTime = timestamp;
- 
-    // 生成障礙物
+
     if (timestamp - lastObstacleTime > obstacleFrequency) {
       createObstacle();
       lastObstacleTime = timestamp;
- 
-      // 隨著分數提升加快障礙物掉落速度及頻率，最大限制速度10，頻率最小500ms
+
       obstacleSpeed = Math.min(10, 3 + score * 0.2);
       obstacleFrequency = Math.max(500, 1500 - score * 20);
     }
- 
+
     updateObstacles(deltaTime);
- 
+
     if (gameRunning) {
       animationFrameId = requestAnimationFrame(gameLoop);
     }
   }
- 
+
   function startGame() {
     gameRunning = true;
     score = 0;
@@ -183,17 +212,16 @@
     obstacleFrequency = 1500;
     carLeft = 175;
     car.style.left = carLeft + 'px';
- 
-    // 清除舊障礙物
+
     obstacles.forEach(obs => gameArea.removeChild(obs));
     obstacles = [];
- 
+
     gameOverScreen.style.display = 'none';
     lastObstacleTime = 0;
     lastFrameTime = 0;
     animationFrameId = requestAnimationFrame(gameLoop);
   }
- 
+
   function endGame() {
     gameRunning = false;
     gameOverScreen.style.display = 'flex';
@@ -201,23 +229,42 @@
       cancelAnimationFrame(animationFrameId);
     }
   }
- 
+
+  function moveCarLeft() {
+    if (!gameRunning) return;
+    carLeft = Math.max(0, carLeft - 25);
+    car.style.left = carLeft + 'px';
+  }
+
+  function moveCarRight() {
+    if (!gameRunning) return;
+    carLeft = Math.min(gameWidth - carWidth, carLeft + 25);
+    car.style.left = carLeft + 'px';
+  }
+
   document.addEventListener('keydown', (e) => {
     if (!gameRunning) return;
     if (e.key === 'ArrowLeft') {
-      carLeft = Math.max(0, carLeft - 25);
-      car.style.left = carLeft + 'px';
+      moveCarLeft();
     } else if (e.key === 'ArrowRight') {
-      carLeft = Math.min(gameWidth - carWidth, carLeft + 25);
-      car.style.left = carLeft + 'px';
+      moveCarRight();
     }
   });
- 
+
+  // 手機按鈕事件
+  btnLeft.addEventListener('touchstart', (e) => {
+    e.preventDefault(); // 防止滑動等預設行為干擾
+    moveCarLeft();
+  });
+  btnRight.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    moveCarRight();
+  });
+
   restartBtn.addEventListener('click', () => {
     startGame();
   });
- 
-  // 頁面載入時開始遊戲
+
   startGame();
 </script>
 </body>
